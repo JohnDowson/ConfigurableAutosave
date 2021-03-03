@@ -7,11 +7,12 @@ using System.Reflection.Emit;
 
 namespace ConfigurableAutosave
 {
-    [BepInPlugin("com.github.johndowson.ConfigurableAutosave", "ConfigurableAutosave", "1.0.0")]
+    [BepInPlugin("com.github.johndowson.ConfigurableAutosave", "ConfigurableAutosave", "1.0.1")]
     public class ConfigurableAutosave : BaseUnityPlugin
     {
 
         public static ConfigEntry<float> autosavePeriod;
+        public static ConfigEntry<bool> disableAutosave;
 
         private static readonly Harmony harmony = new(typeof(ConfigurableAutosave).GetCustomAttributes(typeof(BepInPlugin), false)
             .Cast<BepInPlugin>()
@@ -21,6 +22,7 @@ namespace ConfigurableAutosave
         private void Awake()
         {
             autosavePeriod = Config.Bind("General", "AutosaveInterval", 1200f, "Time between autosaves in seconds");
+            disableAutosave = Config.Bind("General", "DisableAutosave", false, "Disable autosave");
             harmony.PatchAll();
         }
 
@@ -35,6 +37,11 @@ namespace ConfigurableAutosave
             static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
                 var codes = new List<CodeInstruction>(instructions);
+                if (disableAutosave.Value)
+                {
+                    codes[0] = new CodeInstruction(OpCodes.Ret);
+                }
+
                 for (var i = 0; i < codes.Count; i++)
                 {
                     if (codes[i].opcode == OpCodes.Ldarg_0 &&
